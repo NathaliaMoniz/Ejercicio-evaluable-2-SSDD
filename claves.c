@@ -173,6 +173,9 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 		return -1;
 	}
 
+    // Enviar la key
+    
+
     // Recibir respuesta del servidor 
     int32_t res; 
     int recv_status = recv(client_sd, (char *) &res, sizeof(int32_t), 0);   
