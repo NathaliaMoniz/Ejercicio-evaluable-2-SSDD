@@ -5,10 +5,10 @@ DEPS = claves.h list.h
 all: cliente servidor libclaves.so
 
 cliente: cliente.o libclaves.so
-	$(CC) $(CFLAGS) -o cliente cliente.o -L. -lclaves
+	$(CC) $(CFLAGS) -o cliente cliente.o -L. -lclaves -pthread -lsocket
 
 servidor: servidor.o libclaves.so
-	$(CC) $(CFLAGS) -o servidor servidor.o -L. -lclaves
+	$(CC) $(CFLAGS) -o servidor servidor.o -L. -lclaves -pthread -lsocket
 
 cliente.o: cliente.c claves.h message.h
 	$(CC) $(CFLAGS) -c cliente.c
