@@ -1,9 +1,14 @@
-#include <mqueue.h>
 #include <pthread.h>
-#include <stdio.h>
 #include <stdbool.h>
-#include <string.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 #include "./lista/list.h"
 #include "./lista/list.c"
 #include "claves.h"
@@ -13,27 +18,33 @@
 // mutex y variables condicionales para proteger la copia del mensaje
 pthread_mutex_t mutex_mensaje;
 int busy = true;
-pthread_cond_t cond_mensaje;
-mqd_t  q_servidor;          
-
+pthread_cond_t cond_mensaje;       
 List my_list;
 int iniciado;
 
 void tratar_peticion(int * s){
+	fflush(stdout);
+	int recv_status;
 	int32_t resultado;	
     int s_local;
+	char op_recibido;
+	int32_t key_recibido;
+	char *value1_recibido;
+	int N_value2_recibido = 0;
+	double V_value2_recibido[N_value2_recibido];
+
     pthread_mutex_lock(&mutex_mensaje);
 	s_local = (* (int *)s);
 	busy = false;
 	pthread_cond_signal(&cond_mensaje);
 	pthread_mutex_unlock(&mutex_mensaje);
 
-	char op_recibido;
-	int32_t key_recibido;
-	char value1_recibido;
-	int32_t N_value2_recibido;
-	double V_value2_recibido[N_value2_recibido];
-	int recv_status = recvMessage(s_local, (char *)&op_recibido, sizeof(char));
+	recv_status = recvMessage(s_local, (char *)&op_recibido, sizeof(char));
+	if (recv_status == -1) {
+			perror("Error en recepcion\n");
+			close(s_local);
+			exit(-1);
+	}
 
     // ejecutar la petición del cliente y preparar respuesta
 	if (op_recibido ==0){
@@ -44,16 +55,32 @@ void tratar_peticion(int * s){
     }
 
 	else {
-		int recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int32_t));
-		int recv_status = recvMessage(s_local, (char *)&value1_recibido, sizeof(char));
+		recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int32_t));
+		if (recv_status == -1) {
+			perror("Error en recepcion\n");
+			close(s_local);
+			exit(-1);
+		}
+		recv_status = recvMessage(s_local, (char *)&value1_recibido, sizeof(char));
+		if (recv_status == -1) {
+			perror("Error en recepcion\n");
+			close(s_local);
+			exit(-1);
+		}
+		recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int32_t));
+		if (recv_status == -1) {
+			perror("Error en recepcion\n");
+			close(s_local);
+			exit(-1);
+		}
+		key_recibido = ntohs(key_recibido);
+		N_value2_recibido = ntohs(N_value2_recibido);
 	}
 	
 	if (op_recibido == 1 && iniciado == true){
-		key_recibido = ntohs(key_recibido);
         resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 		
 	}
-
 	else if (op_recibido == 2 && iniciado == true){
 		resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
 	}
@@ -69,86 +96,91 @@ void tratar_peticion(int * s){
 	else if (op_recibido == 5 && iniciado == true){
 		resultado = inlist(&my_list, key_recibido);
 	}
-
 	else {
 		resultado = -1;
 	}
 	
-	// Se devuelve el resultado al cliente
-	// Para ello se envía el resultado a su cola
-    q_cliente = mq_open(mensaje.q_name, O_WRONLY);
-	if (q_cliente == -1){
-		perror("No se puede abrir la cola del cliente");
-		fflush(stdout);
-		mq_close(q_servidor);
-		mq_unlink(q_server_name);
+	resultado = htonl(resultado);
+	int send_status = sendMessage(s_local, (char *)&resultado, sizeof(int32_t));  // enví­a el resultado
+	if (send_status == -1) {
+		perror("Error en envi­o\n");
+		close(s_local);
+		exit(-1);
 	}
-	else {
-		//printList(my_list);
-		if (mq_send(q_cliente, (const char *) &resultado, sizeof(struct message), 0) <0) {
-			perror("mq_send");
-			fflush(stdout);
-			mq_close(q_servidor);
-			mq_unlink(q_server_name);
-			mq_close(q_cliente);
-		}
-		
-	}
+	close(s_local);
 	pthread_exit(0);
 }
 
-int main(void){  
-	TRAZA
-    struct message mensaje;
-    
+int main(int argc, char *argv[]){  
+	int sd_server, sd_client ;
+	struct sockaddr_in server_addr,  client_addr;
+	int opt = 1;
+	socklen_t size;
+	size = sizeof(client_addr);
     pthread_attr_t t_attr;  // Atributos de los hilos
-    struct mq_attributes attributes;    // Atributos de la cola
-
-    attributes.mq_flags = 0;
-    attributes.mq_maxmsg = 1;
-    attributes.mq_msgsize = sizeof(mensaje);
-    attributes.mq_curmsgs = 0;
     pthread_t thid;         // ID del hilo
 
-    char q_server_name[MAX];                            // Nombre de la cola servidor  
-    sprintf(q_server_name,  "/Cola-%s", getlogin());   // El combre de la cola del servidor será el nombre del usuario
 
-    // abrir la cola
-    q_servidor = mq_open(q_server_name, O_CREAT|O_RDONLY, 0700, &attributes);
-
-    // tratamiento de error
-    if(q_servidor == -1){
-        perror("No se ha podido crear la cola del servidor");
-		fflush(stdout);
+    // abrir socket del server
+    if ((sd_server = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        printf("SERVER: Error en el socket");
         return -1;
     }
+
+	// socket options...
+	if (setsockopt(sd_server, SOL_SOCKET, SO_REUSEADDR | SO_REUSEADDR, &opt, sizeof(opt)))
+	{
+		printf("SERVER: Error en las opciones del socket");
+        return -1;
+	}
+	
+	int puerto = atoi(argv[1]);
+	int32_t netPuerto = (int32_t)puerto;
+	bzero((char *)&server_addr, sizeof(server_addr));
+	server_addr.sin_family      = AF_INET;
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_port        = htons(netPuerto);
+
+	// bind + listen
+	int err = bind(sd_server, (const struct sockaddr *)&server_addr, sizeof(server_addr));
+	if (err == -1) {
+		printf("Error en bind\n");
+		return -1;
+	}
+
+    err = listen(sd_server, SOMAXCONN);
+	if (err == -1) {
+		printf("Error en listen\n");
+		return -1;
+	}
+
     pthread_mutex_init(&mutex_mensaje, NULL);
 	pthread_cond_init(&cond_mensaje, NULL);
 	pthread_attr_init(&t_attr);
-
     pthread_attr_setdetachstate(&t_attr, PTHREAD_CREATE_DETACHED);
 
-    // Recibir el mensaje de la cola
+    // recibir del cliente
     while(1) {
-			
-            if (mq_receive(q_servidor, (char *) &mensaje, sizeof(mensaje), 0) < 0 ){
-				perror("mq_recev server");
-				fflush(stdout);
-				return -1;
+		printf("esperando conexion\n");
+		sd_client = accept(sd_server, (struct sockaddr *) &client_addr, (socklen_t *)&size);
+		if (sd_client == -1) {
+			printf("Error en accept\n");
+			return -1;
 		}
-		printf("mensaje transmitido\n");
 
-		if (pthread_create(&thid, &t_attr, (void *)tratar_peticion, (void *)&mensaje)== 0) {
-			// Se espera a que el thread copie el mensaje 
+		if (pthread_create(&thid, &t_attr, (void *)tratar_peticion, (void *)&sd_client)== 0) {
+			/* esperar a que el hijo copie el descriptor */ 
 			pthread_mutex_lock(&mutex_mensaje);
-			while (mensaje_no_copiado)
+			while (busy == true)
 				pthread_cond_wait(&cond_mensaje, &mutex_mensaje);
-			mensaje_no_copiado = true;
+			busy = true;
 			pthread_mutex_unlock(&mutex_mensaje);
 	 		}   
         }
+	
+	close(sd_server);
 	return 0;
-    
 
 }
 
