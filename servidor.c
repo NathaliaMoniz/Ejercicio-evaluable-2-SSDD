@@ -7,71 +7,67 @@
 #include "./lista/list.h"
 #include "./lista/list.c"
 #include "claves.h"
-#include "message.h"
+#include "send-recv.h"
 
-#define TRAZA {printf ("Traza en %s:%d\n",__FILE__,__LINE__);fflush(stdout);}
 
 // mutex y variables condicionales para proteger la copia del mensaje
 pthread_mutex_t mutex_mensaje;
-int mensaje_no_copiado = true;
+int busy = true;
 pthread_cond_t cond_mensaje;
-mqd_t  q_servidor;          // Cola del servidor
-
+mqd_t  q_servidor;          
 
 List my_list;
-int iniciado = false;
-void tratar_peticion(void *mess){
-    
-    struct message mensaje;	// mensaje local
-	mqd_t q_cliente;		// cola del cliente
-	int resultado;		    // resultado de la operación
+int iniciado;
 
-    char q_server_name[MAX];                            // Nombre de la cola servidor  
-    sprintf(q_server_name,  "/Cola-%s", getlogin());   // El combre de la cola del servidor será el nombre del usuario
-
-
-	// el thread copia el mensaje a un mensaje local
-	pthread_mutex_lock(&mutex_mensaje);
-
-	mensaje = (*(struct message *) mess);
-
-	// ya se puede despertar al servidor
-	mensaje_no_copiado = false;
-
+void tratar_peticion(int * s){
+	int32_t resultado;	
+    int s_local;
+    pthread_mutex_lock(&mutex_mensaje);
+	s_local = (* (int *)s);
+	busy = false;
 	pthread_cond_signal(&cond_mensaje);
-
 	pthread_mutex_unlock(&mutex_mensaje);
 
+	char op_recibido;
+	int32_t key_recibido;
+	char value1_recibido;
+	int32_t N_value2_recibido;
+	double V_value2_recibido[N_value2_recibido];
+	int recv_status = recvMessage(s_local, (char *)&op_recibido, sizeof(char));
+
     // ejecutar la petición del cliente y preparar respuesta
-	if (mensaje.op ==0){
+	if (op_recibido ==0){
         resultado = iniciar(&my_list);
 		iniciado = true;
+		resultado = htons(resultado);
+		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
     }
+
+	else {
+		int recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int32_t));
+		int recv_status = recvMessage(s_local, (char *)&value1_recibido, sizeof(char));
+	}
+	
+	if (op_recibido == 1 && iniciado == true){
+		key_recibido = ntohs(key_recibido);
+        resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 		
-	else if (mensaje.op == 1 && iniciado == true){
-        resultado = set(&my_list, mensaje.key, mensaje.value1, mensaje.N_value2, mensaje.V_value2);
-		
 	}
 
-	else if (mensaje.op == 2 && iniciado == true){
-		resultado = get(my_list, mensaje.key, mensaje.value1, &mensaje.N_value2, mensaje.V_value2);
-		// printf("valores de get:\nkey:%d value1:%s N_value2:%d\n", mensaje.key, mensaje.value1, mensaje.N_value2);
-        
-        // for(int i = 0; i < mensaje.N_value2; i++){
-		//     printf("V_value2[%d]: %f\n", i, mensaje.V_value2[i]);
-	    // }
+	else if (op_recibido == 2 && iniciado == true){
+		resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
 	}
 
-	else if (mensaje.op == 3 && iniciado == true){
-		resultado = modify(&my_list, mensaje.key, mensaje.value1, mensaje.N_value2, mensaje.V_value2);
+	else if (op_recibido == 3 && iniciado == true){
+		resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 	}
 
-	else if (mensaje.op == 4 && iniciado == true){
-		resultado = delete(&my_list, mensaje.key);
+	else if (op_recibido == 4 && iniciado == true){
+		resultado = delete(&my_list, key_recibido);
 	}
 
-	else if (mensaje.op == 5 && iniciado == true){
-		resultado = inlist(&my_list, mensaje.key);
+	else if (op_recibido == 5 && iniciado == true){
+		resultado = inlist(&my_list, key_recibido);
 	}
 
 	else {
