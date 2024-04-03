@@ -23,12 +23,11 @@ List my_list;
 int iniciado;
 
 void tratar_peticion(int * s){
-	fflush(stdout);
 	int recv_status;
 	int32_t resultado;	
     int s_local;
 	char op_recibido;
-	int32_t key_recibido;
+	int key_recibido;
 	char *value1_recibido;
 	int N_value2_recibido = 0;
 	double V_value2_recibido[N_value2_recibido];
@@ -45,6 +44,8 @@ void tratar_peticion(int * s){
 			close(s_local);
 			exit(-1);
 	}
+	printf("op_recibido: %d\n", op_recibido);
+	fflush(stdout);
 
     // ejecutar la petición del cliente y preparar respuesta
 	if (op_recibido ==0){
@@ -54,32 +55,45 @@ void tratar_peticion(int * s){
 		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
     }
 
+	// En caso de no ser init, se reciben el resto de los parámetros
 	else {
-		recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int32_t));
-		if (recv_status == -1) {
-			perror("Error en recepcion\n");
-			close(s_local);
-			exit(-1);
-		}
-		recv_status = recvMessage(s_local, (char *)&value1_recibido, sizeof(char));
-		if (recv_status == -1) {
-			perror("Error en recepcion\n");
-			close(s_local);
-			exit(-1);
-		}
-		recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int32_t));
+		printf("Tomar el resto de valores\n");
+		fflush(stdout);
+		recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int));
 		if (recv_status == -1) {
 			perror("Error en recepcion\n");
 			close(s_local);
 			exit(-1);
 		}
 		key_recibido = ntohs(key_recibido);
+		printf("key: %d\n", key_recibido);
+		fflush(stdout);
+
+		recv_status = recvMessage(s_local, (char *)&value1_recibido, sizeof(char));
+		if (recv_status == -1) {
+			perror("Error en recepcion\n");
+			close(s_local);
+			exit(-1);
+		}
+		printf("value1: %s\n", value1_recibido);
+		fflush(stdout);
+		recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int32_t));
+		if (recv_status == -1) {
+			perror("Error en recepcion\n");
+			close(s_local);
+			exit(-1);
+		}
+		printf("N_value2: %d\n", N_value2_recibido);
+		fflush(stdout);
+		
+		key_recibido = ntohs(key_recibido);
 		N_value2_recibido = ntohs(N_value2_recibido);
 	}
 	
 	if (op_recibido == 1 && iniciado == true){
-        resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 		
+        resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 	}
 	else if (op_recibido == 2 && iniciado == true){
 		resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);

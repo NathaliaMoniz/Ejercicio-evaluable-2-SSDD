@@ -44,7 +44,7 @@ char *ip(){
     return ip_tuplas;
 }
 int init(){
-
+    int send_status;
     char *port_tuplas_str = port();
     char *ip_tuplas = ip();
     int port_tuplas = atoi(port_tuplas_str);
@@ -74,9 +74,7 @@ int init(){
     memcpy (&(server_addr.sin_addr), hp->h_addr, hp->h_length);
 
     // Iniciar la conexión
-	fflush(stdout);
     int connection_status = connect(sd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    fflush(stdout);
     if (connection_status == -1) {
 		perror("Error en la conexión\n");
 		return -1;
@@ -84,7 +82,7 @@ int init(){
     char op = 0; // Operación de init
 
     // Enviar la op
-    int send_status = sendMessage(sd, (char*) &op, sizeof(char));
+    send_status = sendMessage(sd, (char*) &op, sizeof(char));
     if (send_status == -1){
 		printf("Error en el envio\n");
 		return -1;
@@ -112,6 +110,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
     char *port_tuplas_str = port();
     char *ip_tuplas = ip();
     int port_tuplas = atoi(port_tuplas_str);
+
     // Crear el socket 
     int sd;
     struct sockaddr_in server_addr;
@@ -137,62 +136,61 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
     memcpy (&(server_addr.sin_addr), hp->h_addr, hp->h_length);
 
     // Iniciar la conexión
-    
     int connection_status = connect(sd, (struct sockaddr *) &server_addr, sizeof(server_addr));
     if (connection_status == -1) {
-		printf("Error en la conexión\n");
+		perror("Error en la conexión\n");
 		return -1;
 	}
-
-    char op = 1; // Operación de set_value
+    char op = 1; // Operación de init
 
     // Enviar la op
     send_status = sendMessage(sd, (char*) &op, sizeof(char));
     if (send_status == -1){
-		printf("Error en el envio de la operación\n");
+		printf("Error en el envio\n");
 		return -1;
 	}
 
     // Enviar la key
-    int32_t netKey = htonl((int32_t)key); // Convertir key a formato de red 
-    send_status = sendMessage(sd, (char*) &netKey, sizeof(int32_t));
+    int netKey = htonl(key); // Convertir key a formato de red 
+    send_status = sendMessage(sd, (char*) &netKey, sizeof(int));
     if (send_status == -1){
 		printf("Error en el envio de la clave\n");
 		return -1;
 	}
 
-    // Enviar el value1
-    send_status = sendMessage(sd, value1, strlen(value1) + 1);
+    // Enviar value1
+    send_status = sendMessage(sd, value1, sizeof(char));
     if (send_status == -1){
-		printf("Error en el envio del value1\n");
+		printf("Error en el envio de value1\n");
 		return -1;
 	}
 
-    // Enviar el N_value2
-    int32_t netN_value2 = htonl((int32_t)N_value2);
-    send_status = sendMessage(sd, (char*) &netN_value2, sizeof(int32_t));
+    // Enviar N_value2
+    int netN_value2 = htonl(N_value2); // Convertir key a formato de red 
+    send_status = sendMessage(sd, (char*) &netN_value2, sizeof(int));
     if (send_status == -1){
-		printf("Error en el envio del numero de elementos del vector\n");
+		printf("Error en el envio de N_value2\n");
 		return -1;
 	}
 
-    // Enviar el V_value2
-    send_status = sendMessage(sd, (char*)V_value2, sizeof(double) * N_value2);
-    if (send_status == -1){
-		printf("Error en el envio del vector\n");
-		return -1;
-	}
-
+    for(int i = 0; i < N_value2; i++){
+        send_status = sendMessage(sd, (char*) &V_value2[i], sizeof(double));
+        if (send_status == -1){
+            printf("Error en el envio de V_value2\n");
+            return -1;
+	    }
+    }
     // Recibir respuesta del servidor 
     int32_t res; 
+	fflush(stdout);
     int recv_status = recvMessage(sd, (char *) &res, sizeof(int32_t));   
     if (recv_status == -1){
-		printf("Error en la recepción de respuesta del servidor\n");
+		printf("Error en recepción\n");
 		return -1;
 	}
 
     // Imprimir la respuesta 
-	printf("Respuesta %d \n", ntohl(res));
+	printf("\nRespuesta %d \n", ntohl(res));
     
     // Cerrar el socket 
    	close (sd);
