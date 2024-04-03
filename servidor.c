@@ -22,7 +22,7 @@ pthread_cond_t cond_mensaje;
 List my_list;
 int iniciado;
 
-void tratar_peticion(int * s){
+int tratar_peticion(int * s){
 	int recv_status;
 	int32_t resultado;	
     int s_local;
@@ -85,16 +85,27 @@ void tratar_peticion(int * s){
 		}
 		N_value2_recibido = ntohl(N_value2_recibido);
 		printf("N_value2: %d\n", N_value2_recibido);
-		
 		fflush(stdout);
 		
+		double *V_value2_recibido = malloc(N_value2_recibido * sizeof(double)); // Alojar memoria para el vector
+
+		for (int i = 0; i < N_value2_recibido; i++) {
+			recv_status = recvMessage(s_local, (char*)&V_value2_recibido[i], sizeof(double)); // Recibir cada elemento del vector
+			if (recv_status == -1) {
+				perror("Error en recepción del elemento del vector V_value2\n");
+				free(V_value2_recibido); // Liberar memoria en caso de error
+				return -1;
+			}
+			printf("V_value2[%d]: %f\n", i, V_value2_recibido[i]);
+		}
+
 	}
 	
 	if (op_recibido == 1 && iniciado == true){
-		
         resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 	}
+	
 	else if (op_recibido == 2 && iniciado == true){
 		resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
 	}
@@ -176,7 +187,7 @@ int main(int argc, char *argv[]){
 
     // recibir del cliente
     while(1) {
-		printf("esperando conexion\n");
+		
 		sd_client = accept(sd_server, (struct sockaddr *) &client_addr, (socklen_t *)&size);
 		if (sd_client == -1) {
 			printf("Error en accept\n");
