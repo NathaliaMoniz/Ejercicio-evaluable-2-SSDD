@@ -141,6 +141,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 		perror("Error en la conexión\n");
 		return -1;
 	}
+    
     char op = 1; // Operación de init
 
     // Enviar la op
@@ -149,7 +150,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 		printf("Error en el envio\n");
 		return -1;
 	}
-
+   
     // Enviar la key
     int netKey = htonl(key); // Convertir key a formato de red 
     
@@ -160,7 +161,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 	}
 
     // Enviar value1
-    send_status = sendMessage(sd, value1, sizeof(char));
+    send_status = sendMessage(sd, value1, 256);
     if (send_status == -1){
 		printf("Error en el envio de value1\n");
 		return -1;
@@ -189,7 +190,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 		printf("Error en recepción\n");
 		return -1;
 	}
-
+    
     // Imprimir la respuesta 
 	printf("\nRespuesta %d \n", ntohl(res));
     

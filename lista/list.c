@@ -17,13 +17,14 @@ int set(List *l, int key, char *value1, int N_value2, double *V_value2){
 	// El vector no tiene un tamaño permitido
 	if (N_value2 > 32 || N_value2 < 1){
 		printf("Error: el número de valores del vector solo puede estar entre 1 y 32\n");
-		printf("N_value2 en list %d\n", N_value2);
+		
 		return -1;
 	}
 
 	while (temp != NULL) {
         if (temp->key == key) {
             printf("Error: Key %d ya está en la lista.\n", key);
+			
             return -1; // La llave ya existe
         }
         temp = temp->next;

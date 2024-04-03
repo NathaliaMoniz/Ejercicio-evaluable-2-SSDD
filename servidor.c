@@ -28,7 +28,7 @@ void tratar_peticion(int * s){
     int s_local;
 	char op_recibido;
 	int key_recibido;
-	char *value1_recibido;
+	char value1_recibido[256];
 	int N_value2_recibido = 0;
 	double V_value2_recibido[N_value2_recibido];
 
@@ -69,7 +69,7 @@ void tratar_peticion(int * s){
 		printf("key: %d\n", key_recibido);
 		fflush(stdout);
 
-		recv_status = recvMessage(s_local, (char*)&value1_recibido, sizeof(char));
+		recv_status = recvMessage(s_local, value1_recibido, 256);
 		if (recv_status == -1) {
 			perror("Error en recepcion\n");
 			close(s_local);
@@ -87,7 +87,6 @@ void tratar_peticion(int * s){
 		printf("N_value2: %d\n", N_value2_recibido);
 		
 		fflush(stdout);
-		
 		
 	}
 	
