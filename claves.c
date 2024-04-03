@@ -152,6 +152,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 
     // Enviar la key
     int netKey = htonl(key); // Convertir key a formato de red 
+    
     send_status = sendMessage(sd, (char*) &netKey, sizeof(int));
     if (send_status == -1){
 		printf("Error en el envio de la clave\n");

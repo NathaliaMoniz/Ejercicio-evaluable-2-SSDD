@@ -65,11 +65,11 @@ void tratar_peticion(int * s){
 			close(s_local);
 			exit(-1);
 		}
-		key_recibido = ntohs(key_recibido);
+		key_recibido = ntohl(key_recibido);
 		printf("key: %d\n", key_recibido);
 		fflush(stdout);
 
-		recv_status = recvMessage(s_local, (char *)&value1_recibido, sizeof(char));
+		recv_status = recvMessage(s_local, value1_recibido, sizeof(char));
 		if (recv_status == -1) {
 			perror("Error en recepcion\n");
 			close(s_local);
