@@ -69,7 +69,7 @@ void tratar_peticion(int * s){
 		printf("key: %d\n", key_recibido);
 		fflush(stdout);
 
-		recv_status = recvMessage(s_local, value1_recibido, sizeof(char));
+		recv_status = recvMessage(s_local, (char*)&value1_recibido, sizeof(char));
 		if (recv_status == -1) {
 			perror("Error en recepcion\n");
 			close(s_local);
@@ -77,30 +77,32 @@ void tratar_peticion(int * s){
 		}
 		printf("value1: %s\n", value1_recibido);
 		fflush(stdout);
-		recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int32_t));
+		recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int));
 		if (recv_status == -1) {
 			perror("Error en recepcion\n");
 			close(s_local);
 			exit(-1);
 		}
+		N_value2_recibido = ntohl(N_value2_recibido);
 		printf("N_value2: %d\n", N_value2_recibido);
+		
 		fflush(stdout);
 		
 		key_recibido = ntohs(key_recibido);
-		N_value2_recibido = ntohs(N_value2_recibido);
+		
 	}
 	
 	if (op_recibido == 1 && iniciado == true){
 		
-        resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+        resultado = set(&my_list, key_recibido, (char*)&value1_recibido, N_value2_recibido, V_value2_recibido);
 		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 	}
 	else if (op_recibido == 2 && iniciado == true){
-		resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
+		//resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
 	}
 
 	else if (op_recibido == 3 && iniciado == true){
-		resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+		//resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 	}
 
 	else if (op_recibido == 4 && iniciado == true){
