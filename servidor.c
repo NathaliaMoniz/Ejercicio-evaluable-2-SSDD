@@ -88,21 +88,20 @@ void tratar_peticion(int * s){
 		
 		fflush(stdout);
 		
-		key_recibido = ntohs(key_recibido);
 		
 	}
 	
 	if (op_recibido == 1 && iniciado == true){
 		
-        resultado = set(&my_list, key_recibido, (char*)&value1_recibido, N_value2_recibido, V_value2_recibido);
+        resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 	}
 	else if (op_recibido == 2 && iniciado == true){
-		//resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
+		resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
 	}
 
 	else if (op_recibido == 3 && iniciado == true){
-		//resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+		resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 	}
 
 	else if (op_recibido == 4 && iniciado == true){
