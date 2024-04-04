@@ -30,7 +30,7 @@ int tratar_peticion(int * s){
 	int key_recibido;
 	char value1_recibido[256];
 	int N_value2_recibido = 0;
-	double V_value2_recibido[N_value2_recibido];
+
 
     pthread_mutex_lock(&mutex_mensaje);
 	s_local = (* (int *)s);
@@ -51,13 +51,13 @@ int tratar_peticion(int * s){
 	if (op_recibido ==0){
         resultado = iniciar(&my_list);
 		iniciado = true;
-		resultado = htons(resultado);
+		resultado = htonl(resultado);
 		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
     }
 
 	// En caso de no ser init, se reciben el resto de los parámetros
 	else {
-		printf("Tomar el resto de valores\n");
+		printf("Tomar key\n");
 		fflush(stdout);
 		recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int));
 		if (recv_status == -1) {
@@ -69,69 +69,81 @@ int tratar_peticion(int * s){
 		printf("key: %d\n", key_recibido);
 		fflush(stdout);
 
-		recv_status = recvMessage(s_local, value1_recibido, 256);
-		if (recv_status == -1) {
-			perror("Error en recepcion\n");
-			close(s_local);
-			exit(-1);
+		if (op_recibido == 4 && iniciado == true){
+			resultado = delete(&my_list, key_recibido);
+			resultado = htonl(resultado);
+			sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 		}
-		printf("value1: %s\n", value1_recibido);
-		fflush(stdout);
-		recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int));
-		if (recv_status == -1) {
-			perror("Error en recepcion\n");
-			close(s_local);
-			exit(-1);
-		}
-		N_value2_recibido = ntohl(N_value2_recibido);
-		printf("N_value2: %d\n", N_value2_recibido);
-		fflush(stdout);
-		
-		double *V_value2_recibido = malloc(N_value2_recibido * sizeof(double)); // Alojar memoria para el vector
 
-		for (int i = 0; i < N_value2_recibido; i++) {
-			recv_status = recvMessage(s_local, (char*)&V_value2_recibido[i], sizeof(double)); // Recibir cada elemento del vector
+		else if (op_recibido == 5 && iniciado == true){
+			resultado = inlist(&my_list, key_recibido);
+			resultado = htonl(resultado);
+			sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
+		}
+
+		else {
+			printf("Tomar el resto de valores\n");
+			recv_status = recvMessage(s_local, value1_recibido, 256);
 			if (recv_status == -1) {
-				perror("Error en recepción del elemento del vector V_value2\n");
-				free(V_value2_recibido); // Liberar memoria en caso de error
-				return -1;
+				perror("Error en recepcion\n");
+				close(s_local);
+				exit(-1);
 			}
-			printf("V_value2[%d]: %f\n", i, V_value2_recibido[i]);
+			printf("value1: %s\n", value1_recibido);
+			fflush(stdout);
+			recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int));
+			if (recv_status == -1) {
+				perror("Error en recepcion\n");
+				close(s_local);
+				exit(-1);
+			}
+			N_value2_recibido = ntohl(N_value2_recibido);
+			printf("N_value2: %d\n", N_value2_recibido);
+			fflush(stdout);
+			
+			double *V_value2_recibido = malloc(N_value2_recibido * sizeof(double)); // Alojar memoria para el vector
+
+			for (int i = 0; i < N_value2_recibido; i++) {
+				recv_status = recvMessage(s_local, (char*)&V_value2_recibido[i], sizeof(double)); // Recibir cada elemento del vector
+				if (recv_status == -1) {
+					perror("Error en recepción del elemento del vector V_value2\n");
+					free(V_value2_recibido); // Liberar memoria en caso de error
+					return -1;
+				}
+			}
+
+			if (op_recibido == 1 && iniciado == true){
+				resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+				resultado = htonl(resultado);
+				sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
+			}
+			
+			else if (op_recibido == 2 && iniciado == true){
+				resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
+			}
+
+			else if (op_recibido == 3 && iniciado == true){
+				resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+				resultado = htonl(resultado);
+				sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
+			}
+
+			else {
+				resultado = -1;
+			}
 		}
-
 	}
+
+	// Imprimir la lista al terminar
+	printList(my_list);
 	
-	if (op_recibido == 1 && iniciado == true){
-        resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
-		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
-	}
-	
-	else if (op_recibido == 2 && iniciado == true){
-		resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
-	}
-
-	else if (op_recibido == 3 && iniciado == true){
-		resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
-	}
-
-	else if (op_recibido == 4 && iniciado == true){
-		resultado = delete(&my_list, key_recibido);
-	}
-
-	else if (op_recibido == 5 && iniciado == true){
-		resultado = inlist(&my_list, key_recibido);
-	}
-	else {
-		resultado = -1;
-	}
-	
-	resultado = htonl(resultado);
-	int send_status = sendMessage(s_local, (char *)&resultado, sizeof(int32_t));  // enví­a el resultado
-	if (send_status == -1) {
-		perror("Error en envi­o\n");
-		close(s_local);
-		exit(-1);
-	}
+	// resultado = htonl(resultado);
+	// int send_status = sendMessage(s_local, (char *)&resultado, sizeof(int32_t));  // enví­a el resultado
+	// if (send_status == -1) {
+	// 	perror("Error en envi­o\n");
+	// 	close(s_local);
+	// 	exit(-1);
+	// }
 	close(s_local);
 	pthread_exit(0);
 }
@@ -206,6 +218,5 @@ int main(int argc, char *argv[]){
 	
 	close(sd_server);
 	return 0;
-
 }
 
