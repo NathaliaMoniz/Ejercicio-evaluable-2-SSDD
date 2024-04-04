@@ -119,7 +119,27 @@ int tratar_peticion(int * s){
 			}
 			
 			else if (op_recibido == 2 && iniciado == true){
-				resultado = get(my_list, key_recibido, value1_recibido, &N_value2_recibido, V_value2_recibido);
+				char value1_found[256];
+				int N_value2_found;
+				double *V_value2_found;
+
+				// Obtener los valores asociados a la clave key_recibido
+				int result = get(&my_list, key_recibido, value1_found, &N_value2_found, V_value2_found);
+
+				// Preparar la respuesta
+				if (result == 0) {
+					// Envío de respuesta exitosa al cliente
+					sendMessage(s_local, (char*)&result, sizeof(int32_t)); // Envía el resultado de la operación
+
+					// Envío de los valores encontrados
+					sendMessage(s_local, value1_found, 256); // Envía value1
+					int32_t netN_value2_found = htonl(N_value2_found);
+					sendMessage(s_local, (char*)&netN_value2_found, sizeof(int32_t)); // Envía N_value2
+					for (int i = 0; i < N_value2_found; i++) {
+						double net_V_value2 = htonl(V_value2_found[i]); // Convertir cada elemento de V_value2 a formato de red
+						sendMessage(s_local, (char*)&net_V_value2, sizeof(double)); // Envía cada elemento de V_value2
+					}
+				
 			}
 
 			else if (op_recibido == 3 && iniciado == true){

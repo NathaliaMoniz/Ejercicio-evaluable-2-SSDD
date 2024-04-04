@@ -200,7 +200,97 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 }
 
 int get_value(int key, char *value1, int *N_value2, double *V_value2){
+    int send_status;
+    char *port_tuplas_str = port();
+    char *ip_tuplas = ip();
+    int port_tuplas = atoi(port_tuplas_str);
+
+    // Crear el socket 
+    int sd;
+    struct sockaddr_in server_addr;
+    struct hostent *hp;
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sd == -1) {
+		printf("Error al crear el socket\n");
+		return -1;
+	}
+
+    // Especificar una direccion para el socket 
+    bzero((char *)&server_addr, sizeof(server_addr)); // Asegurarse de que no haya basura en la estructura antes de usarla
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port   = htons(port_tuplas);
+    hp = gethostbyname (ip_tuplas);
+
+    if (hp == NULL) {
+		printf("Error en gethostbyname\n");
+		return -1;
+	}
+
+    memcpy (&(server_addr.sin_addr), hp->h_addr, hp->h_length);
+
+    // Iniciar la conexión
+    int connection_status = connect(sd, (struct sockaddr *) &server_addr, sizeof(server_addr));
+    if (connection_status == -1) {
+		perror("Error en la conexión\n");
+		return -1;
+	}
     
+    char op = 2; // Operación de get
+
+    // Enviar la op
+    send_status = sendMessage(sd, (char*) &op, sizeof(char));
+    if (send_status == -1){
+		printf("Error en el envio\n");
+		return -1;
+	}
+   
+    // Enviar la key
+    int netKey = htonl(key); // Convertir key a formato de red 
+    
+    send_status = sendMessage(sd, (char*) &netKey, sizeof(int));
+    if (send_status == -1){
+		printf("Error en el envio de la clave\n");
+		return -1;
+	}
+
+    // Recibir value1
+    int recv_status = recvMessage(sd, value1, 256);
+    if (recv_status == -1){
+		printf("Error en recepción de value1\n");
+		return -1;
+	}
+
+    // Recibir N_value2
+    int32_t netN_value2;
+    recv_status = recvMessage(sd, (char *) &netN_value2, sizeof(int32_t));
+    if (recv_status == -1){
+		printf("Error en recepción de N_value2\n");
+		return -1;
+	}
+    *N_value2 = ntohl(netN_value2);
+
+    // Recibir V_value2
+    for(int i = 0; i < *N_value2; i++){
+        recv_status = recvMessage(sd, (char*) &V_value2[i], sizeof(double));
+        if (recv_status == -1){
+            printf("Error en recepción de V_value2\n");
+            return -1;
+	    }
+    }
+
+    int32_t res; 
+    recv_status = recvMessage(sd, (char *) &res, sizeof(int32_t));   
+    if (recv_status == -1){
+		printf("Error en recepción\n");
+		return -1;
+	}
+    
+    // Imprimir la respuesta 
+	printf("\nRespuesta %d \n", ntohl(res));
+    
+    // Cerrar el socket 
+   	close (sd);
     return 0;
 }
 
