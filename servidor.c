@@ -80,7 +80,34 @@ int tratar_peticion(int * s){
 			resultado = htonl(resultado);
 			sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 		}
+		else if (op_recibido == 2 && iniciado == true){
+			// printf("4\n");
+			// fflush(stdout);
+			char value1_found[256];
+			int N_value2_found;
+			double V_value2_found[32];
 
+			// Obtener los valores asociados a la clave key_recibido
+			// printf("5\n");
+			// fflush(stdout);
+			int result = get(my_list, key_recibido, value1_found, &N_value2_found, V_value2_found);
+			// printf("6\n");
+			// fflush(stdout);
+			printf("res: %d\n", result);
+
+			printf("value1_found: %s\n", value1_found);
+
+			// Envío de los valores encontrados
+			sendMessage(s_local, value1_found, 256); // Envía value1
+			int netN_value2_found = htonl(N_value2_found);
+			printf("N_value2: %d\n", N_value2_found);
+			sendMessage(s_local, (char*)&netN_value2_found, sizeof(int)); // Envía N_value2
+			for (int i = 0; i < N_value2_found; i++) {
+				sendMessage(s_local, (char*)&V_value2_found[i], sizeof(double)); // Envía cada elemento de V_value2
+			}
+			// Envío de respuesta exitosa al cliente
+			sendMessage(s_local, (char*)&result, sizeof(int32_t)); // Envía el resultado de la operación
+		}
 		else {
 			// printf("Tomar el resto de valores\n");
 			recv_status = recvMessage(s_local, value1_recibido, 256);
@@ -117,47 +144,13 @@ int tratar_peticion(int * s){
 				resultado = htonl(resultado);
 				sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 			}
-			
-			else if (op_recibido == 2 && iniciado == true){
-				printf("4\n");
-    			fflush(stdout);
-				char value1_found[256];
-				int N_value2_found;
-				double *V_value2_found = NULL;
-
-				// Obtener los valores asociados a la clave key_recibido
-				printf("5\n");
-    			fflush(stdout);
-				int result = get(my_list, key_recibido, value1_found, &N_value2_found, V_value2_found);
-				printf("6\n");
-    			fflush(stdout);
-				printf("res: %d\n", result);
-
-				// Preparar la respuesta
-				if (result == 0) {
-					// Envío de respuesta exitosa al cliente
-					sendMessage(s_local, (char*)&result, sizeof(int32_t)); // Envía el resultado de la operación
-
-					// Envío de los valores encontrados
-					sendMessage(s_local, value1_found, 256); // Envía value1
-					int32_t netN_value2_found = htonl(N_value2_found);
-					sendMessage(s_local, (char*)&netN_value2_found, sizeof(int32_t)); // Envía N_value2
-					for (int i = 0; i < N_value2_found; i++) {
-						double net_V_value2 = htonl(V_value2_found[i]); // Convertir cada elemento de V_value2 a formato de red
-						sendMessage(s_local, (char*)&net_V_value2, sizeof(double)); // Envía cada elemento de V_value2
-					}
-				
-				}
-
-				else if (op_recibido == 3 && iniciado == true){
-					resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
-					resultado = htonl(resultado);
-					sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
-				}
-
-				else {
-					resultado = -1;
-				}
+			else if (op_recibido == 3 && iniciado == true){
+				resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+				resultado = htonl(resultado);
+				sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
+			}
+			else {
+				resultado = -1;
 			}
 		}
 	}

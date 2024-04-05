@@ -59,12 +59,10 @@ int set(List *l, int key, char *value1, int N_value2, double *V_value2){
 }	
 
 int get(List l, int key, char *value1, int *N_value2, double *V_value2){
-	printf("10\n");
-	fflush(stdout);
 	List aux;
 
 	aux = l;	
-
+	
 	while (aux!=NULL) {
 		if (aux->key == key) {
 			

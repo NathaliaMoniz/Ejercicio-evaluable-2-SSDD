@@ -200,8 +200,6 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 }
 
 int get_value(int key, char *value1, int *N_value2, double *V_value2){
-    printf("0\n");
-    fflush(stdout);
     int send_status;
     char *port_tuplas_str = port();
     char *ip_tuplas = ip();
@@ -246,7 +244,7 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
 		printf("Error en el envio\n");
 		return -1;
 	}
-   
+
     // Enviar la key
     int netKey = htonl(key); // Convertir key a formato de red 
     
@@ -257,34 +255,38 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
 	}
 
     // Recibir value1
-    int recv_status = recvMessage(sd, value1, 256);
-    printf("1\n");
-    fflush(stdout);
+    char value1_recibido[256];
+    int recv_status = recvMessage(sd, value1_recibido, 256);
+
     if (recv_status == -1){
 		printf("Error en recepción de value1\n");
 		return -1;
 	}
+    strcpy(value1, value1_recibido);
+    
 
     // Recibir N_value2
-    int32_t netN_value2;
-    recv_status = recvMessage(sd, (char *) &netN_value2, sizeof(int32_t));
-    printf("2\n");
-    fflush(stdout);
+    int hostN_value2;
+    recv_status = recvMessage(sd, (char *) &hostN_value2, sizeof(int));
     if (recv_status == -1){
-		printf("Error en recepción de N_value2\n");
-		return -1;
-	}
-    *N_value2 = ntohl(netN_value2);
+        printf("Error en recepción de N_value2\n");
+        return -1;
+    }
+
+    int N_value2_recibido = ntohl(hostN_value2);
+    *N_value2 = N_value2_recibido;
 
     // Recibir V_value2
-    for(int i = 0; i < *N_value2; i++){
-        recv_status = recvMessage(sd, (char*) &V_value2[i], sizeof(double));
-        printf("3\n");
-        fflush(stdout);
-        if (recv_status == -1){
-            printf("Error en recepción de V_value2\n");
+    
+    double V_value2_recibido[N_value2_recibido];
+    for (int i = 0; i < N_value2_recibido; i++) {
+        recv_status = recvMessage(sd, (char*)&V_value2_recibido[i], sizeof(double)); // Recibir cada elemento del vector
+        V_value2[i] = V_value2_recibido[i];
+        if (recv_status == -1) {
+            perror("Error en recepción del elemento del vector V_value2\n");
+            
             return -1;
-	    }
+        }
     }
 
     int32_t res; 
