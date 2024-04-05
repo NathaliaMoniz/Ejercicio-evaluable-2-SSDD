@@ -53,12 +53,14 @@ int set(List *l, int key, char *value1, int N_value2, double *V_value2){
 		*l = ptr;
 	}
 	for(int i = 0; i < N_value2; i++){
-		printf("Valor %d: %f\n", i, V_value2[i]);
+		// printf("Valor %d: %f\n", i, V_value2[i]);
 	}
 	return 0;
 }	
 
 int get(List l, int key, char *value1, int *N_value2, double *V_value2){
+	printf("10\n");
+	fflush(stdout);
 	List aux;
 
 	aux = l;	

@@ -200,6 +200,8 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 }
 
 int get_value(int key, char *value1, int *N_value2, double *V_value2){
+    printf("0\n");
+    fflush(stdout);
     int send_status;
     char *port_tuplas_str = port();
     char *ip_tuplas = ip();
@@ -256,6 +258,8 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
 
     // Recibir value1
     int recv_status = recvMessage(sd, value1, 256);
+    printf("1\n");
+    fflush(stdout);
     if (recv_status == -1){
 		printf("Error en recepción de value1\n");
 		return -1;
@@ -264,6 +268,8 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
     // Recibir N_value2
     int32_t netN_value2;
     recv_status = recvMessage(sd, (char *) &netN_value2, sizeof(int32_t));
+    printf("2\n");
+    fflush(stdout);
     if (recv_status == -1){
 		printf("Error en recepción de N_value2\n");
 		return -1;
@@ -273,6 +279,8 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
     // Recibir V_value2
     for(int i = 0; i < *N_value2; i++){
         recv_status = recvMessage(sd, (char*) &V_value2[i], sizeof(double));
+        printf("3\n");
+        fflush(stdout);
         if (recv_status == -1){
             printf("Error en recepción de V_value2\n");
             return -1;
@@ -535,6 +543,3 @@ int exist(int key){
    	close (sd);
     return 0;
 }
-
-
-

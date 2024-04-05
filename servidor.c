@@ -57,7 +57,7 @@ int tratar_peticion(int * s){
 
 	// En caso de no ser init, se reciben el resto de los parámetros
 	else {
-		printf("Tomar key\n");
+		// printf("Tomar key\n");
 		fflush(stdout);
 		recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int));
 		if (recv_status == -1) {
@@ -66,7 +66,7 @@ int tratar_peticion(int * s){
 			exit(-1);
 		}
 		key_recibido = ntohl(key_recibido);
-		printf("key: %d\n", key_recibido);
+		// printf("key: %d\n", key_recibido);
 		fflush(stdout);
 
 		if (op_recibido == 4 && iniciado == true){
@@ -82,14 +82,14 @@ int tratar_peticion(int * s){
 		}
 
 		else {
-			printf("Tomar el resto de valores\n");
+			// printf("Tomar el resto de valores\n");
 			recv_status = recvMessage(s_local, value1_recibido, 256);
 			if (recv_status == -1) {
 				perror("Error en recepcion\n");
 				close(s_local);
 				exit(-1);
 			}
-			printf("value1: %s\n", value1_recibido);
+			// printf("value1: %s\n", value1_recibido);
 			fflush(stdout);
 			recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int));
 			if (recv_status == -1) {
@@ -98,8 +98,8 @@ int tratar_peticion(int * s){
 				exit(-1);
 			}
 			N_value2_recibido = ntohl(N_value2_recibido);
-			printf("N_value2: %d\n", N_value2_recibido);
-			fflush(stdout);
+			// printf("N_value2: %d\n", N_value2_recibido);
+			// fflush(stdout);
 			
 			double *V_value2_recibido = malloc(N_value2_recibido * sizeof(double)); // Alojar memoria para el vector
 
@@ -119,12 +119,19 @@ int tratar_peticion(int * s){
 			}
 			
 			else if (op_recibido == 2 && iniciado == true){
+				printf("4\n");
+    			fflush(stdout);
 				char value1_found[256];
 				int N_value2_found;
-				double *V_value2_found;
+				double *V_value2_found = NULL;
 
 				// Obtener los valores asociados a la clave key_recibido
-				int result = get(&my_list, key_recibido, value1_found, &N_value2_found, V_value2_found);
+				printf("5\n");
+    			fflush(stdout);
+				int result = get(my_list, key_recibido, value1_found, &N_value2_found, V_value2_found);
+				printf("6\n");
+    			fflush(stdout);
+				printf("res: %d\n", result);
 
 				// Preparar la respuesta
 				if (result == 0) {
@@ -140,16 +147,17 @@ int tratar_peticion(int * s){
 						sendMessage(s_local, (char*)&net_V_value2, sizeof(double)); // Envía cada elemento de V_value2
 					}
 				
-			}
+				}
 
-			else if (op_recibido == 3 && iniciado == true){
-				resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
-				resultado = htonl(resultado);
-				sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
-			}
+				else if (op_recibido == 3 && iniciado == true){
+					resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
+					resultado = htonl(resultado);
+					sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
+				}
 
-			else {
-				resultado = -1;
+				else {
+					resultado = -1;
+				}
 			}
 		}
 	}
@@ -166,6 +174,7 @@ int tratar_peticion(int * s){
 	// }
 	close(s_local);
 	pthread_exit(0);
+	return 0;
 }
 
 int main(int argc, char *argv[]){  
@@ -239,4 +248,3 @@ int main(int argc, char *argv[]){
 	close(sd_server);
 	return 0;
 }
-
