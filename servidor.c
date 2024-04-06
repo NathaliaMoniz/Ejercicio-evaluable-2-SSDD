@@ -17,6 +17,7 @@
 
 // mutex y variables condicionales para proteger la copia del mensaje
 pthread_mutex_t mutex_mensaje;
+pthread_mutex_t mutex_lista1, mutex_lista2;
 int busy = true;
 pthread_cond_t cond_mensaje;       
 List my_list;
@@ -157,14 +158,7 @@ int tratar_peticion(int * s){
 
 	// Imprimir la lista al terminar
 	printList(my_list);
-	
-	// resultado = htonl(resultado);
-	// int send_status = sendMessage(s_local, (char *)&resultado, sizeof(int32_t));  // enví­a el resultado
-	// if (send_status == -1) {
-	// 	perror("Error en envi­o\n");
-	// 	close(s_local);
-	// 	exit(-1);
-	// }
+
 	close(s_local);
 	pthread_exit(0);
 	return 0;
@@ -215,6 +209,8 @@ int main(int argc, char *argv[]){
 	}
 
     pthread_mutex_init(&mutex_mensaje, NULL);
+	pthread_mutex_init(&mutex_lista1, NULL);
+    pthread_mutex_init(&mutex_lista2, NULL);
 	pthread_cond_init(&cond_mensaje, NULL);
 	pthread_attr_init(&t_attr);
     pthread_attr_setdetachstate(&t_attr, PTHREAD_CREATE_DETACHED);
@@ -239,5 +235,12 @@ int main(int argc, char *argv[]){
         }
 	
 	close(sd_server);
+	
+	// Destruir los mutex y las variables condicionales
+	pthread_mutex_destroy(&mutex_mensaje);
+	pthread_mutex_destroy(&mutex_lista1);
+	pthread_mutex_destroy(&mutex_lista2);
+	pthread_cond_destroy(&cond_mensaje);
+
 	return 0;
 }

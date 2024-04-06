@@ -6,6 +6,7 @@
 
 pthread_mutex_t mutex_lista1, mutex_lista2;
 
+
 int iniciar(List *l) {
 	*l = NULL;
 	return 0;
@@ -112,27 +113,27 @@ int printList(List l){
 	return 0;
 }	
 
-	int modify(List *l, int key, char *value1, int N_value2, double *V_value2){
-		pthread_mutex_lock(&mutex_lista1);
-		List aux;
-		aux = *l;
-		while (aux!=NULL) {
-			if (aux->key == key) {
-				strcpy(aux->value1, value1);
-				aux->N_value2 = N_value2;
-				memcpy(aux->V_value2, V_value2, N_value2*sizeof(double));
-				printf("Valor a modificar %d encontrado\n", key);
-				pthread_mutex_unlock(&mutex_lista1);  // Desbloquear el mutex después de modificar la lista
-				return 0;		// Valor encontrado
-			}
-			else{
-				aux = aux->next;
-			}
+int modify(List *l, int key, char *value1, int N_value2, double *V_value2){
+	pthread_mutex_lock(&mutex_lista1);
+	List aux;
+	aux = *l;
+	while (aux!=NULL) {
+		if (aux->key == key) {
+			strcpy(aux->value1, value1);
+			aux->N_value2 = N_value2;
+			memcpy(aux->V_value2, V_value2, N_value2*sizeof(double));
+			printf("Valor a modificar %d encontrado\n", key);
+			pthread_mutex_unlock(&mutex_lista1);  // Desbloquear el mutex después de modificar la lista
+			return 0;		// Valor encontrado
 		}
-		printf("Error: valor a modificar %d no encontrado\n", key);
-		pthread_mutex_unlock(&mutex_lista1);  // Desbloquear el mutex si no se encontró el valor
-		return -1;		// Valor no encontrado
+		else{
+			aux = aux->next;
+		}
 	}
+	printf("Error: valor a modificar %d no encontrado\n", key);
+	pthread_mutex_unlock(&mutex_lista1);  // Desbloquear el mutex si no se encontró el valor
+	return -1;		// Valor no encontrado
+}
 
 int delete(List *l, int key){
 	
@@ -161,7 +162,7 @@ int delete(List *l, int key){
 		if (aux->key == key) {
 			back->next = aux->next;
 			free (aux);
-			printf("Valor a borrar encontrado\n");
+			printf("Valor a borrar %d encontrado\n", key);
 			pthread_mutex_unlock(&mutex_lista1);  // Desbloquea el mutex antes de salir
 			return 0;		// Valor encontrado
 		}
@@ -170,38 +171,42 @@ int delete(List *l, int key){
 			aux = aux->next;
 		}
 	}
-	printf("Error: valor a borrar no encontrado\n");
+	printf("Error: valor a borrar %d no encontrado\n", key);
 	pthread_mutex_unlock(&mutex_lista1);  // Desbloquea el mutex antes de salir
 	return -1;		// Valor no encontrado
 }	
 
 int inlist(List *l, int key){
-	List aux;
+	pthread_mutex_lock(&mutex_lista1); // Bloquea el mutex antes de entrar a la zona crítica
 
-	aux = *l;
-	while (aux!=NULL) {
-		if (aux->key == key) {
-			printf("Valor %d encontrado\n", key);
-			return 1;		// Valor encontrado
-		}
-		else{
-			aux = aux->next;
-		}
-	}
-	printf("Error: valor %d no encontrado\n", key);
-	return 0; 	// Valor no encontrado
+    List aux = *l;
+    while (aux != NULL) {
+        if (aux->key == key) {
+            printf("Valor %d encontrado\n", key);
+            pthread_mutex_unlock(&mutex_lista1); // Desbloquea el mutex antes de salir
+            return 1; // Valor encontrado
+        } else {
+            aux = aux->next;
+        }
+    }
+
+    printf("Error: valor %d no encontrado\n", key);
+    pthread_mutex_unlock(&mutex_lista1); // Desbloquea el mutex antes de salir
+    return 0; // Valor no encontrado
 }
 
 int destroy(List *l){
-	List aux; 
+	pthread_mutex_lock(&mutex_lista1); // Bloquea el mutex antes de entrar a la zona crítica
 
-	while (*l != NULL){
-		aux = *l;
-		*l = aux->next;
-		free(aux->V_value2);
-		free(aux);
-	}
+    List aux;
+    while (*l != NULL) {
+        aux = *l;
+        *l = aux->next;
+        free(aux->V_value2);
+        free(aux);
+    }
 
-	return 0;
+    pthread_mutex_unlock(&mutex_lista1); // Desbloquea el mutex antes de salir
+    return 0;
 }	
 
