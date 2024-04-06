@@ -57,7 +57,7 @@ int tratar_peticion(int * s){
     }
 
 	// En caso de no ser init, se reciben el resto de los parámetros
-	else {
+	else if (iniciado == true){
 		// printf("Tomar key\n");
 		fflush(stdout);
 		recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int));
@@ -154,6 +154,12 @@ int tratar_peticion(int * s){
 				resultado = -1;
 			}
 		}
+	}
+	else {
+		resultado = -1;
+		printf("Error: init no realizado\n");
+		resultado = htonl(resultado);
+		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 	}
 
 	// Imprimir la lista al terminar
