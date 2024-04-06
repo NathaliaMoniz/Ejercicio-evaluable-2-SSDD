@@ -1,8 +1,3 @@
-#!/bin/bash
-
-env IP_TUPLAS=localhost PORT_TUPLAS=8080 ../cliente 0
-# Bucle for que itera 100 veces
-for ((i=0; i<=100; i++))
-do
-    env IP_TUPLAS=localhost PORT_TUPLAS=8080 ../cliente 1 $i "valor $i" 1
-done
+# Concurrencia con 200 elementos
+./aux.sh & ./aux2.sh & ./aux3.sh & ./aux4.sh
+echo fin

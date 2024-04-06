@@ -2,7 +2,7 @@
 
 env IP_TUPLAS=localhost PORT_TUPLAS=8080 ../cliente 0
 # Bucle for que itera 100 veces
-for ((i=0; i<=200; i+=2))
+for ((i=100; i<=200; i++))
 do
-    env IP_TUPLAS=localhost PORT_TUPLAS=8080 ../cliente 3 $i "valor $i modificado" 2
+    env IP_TUPLAS=localhost PORT_TUPLAS=8080 ../cliente 1 $i "valor $i" 1
 done
