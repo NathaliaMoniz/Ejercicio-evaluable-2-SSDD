@@ -4,4 +4,4 @@ env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente 1 23 "Ana" 2
 env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente 1 55 "Nacho" 2
 env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente 1 39 "Alberto" 6
 env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente 1 79 "Nathalia" 2
-env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente 4 55ocalhost PORT_TUPLAS=8080 ../cliente 4 55
+env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente 4 55

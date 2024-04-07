@@ -175,6 +175,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
 		return -1;
 	}
 
+    // Enviar V_value2
     for(int i = 0; i < N_value2; i++){
         send_status = sendMessage(sd, (char*) &V_value2[i], sizeof(double));
         if (send_status == -1){
@@ -272,12 +273,10 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
         printf("Error en recepción de N_value2\n");
         return -1;
     }
-
     int N_value2_recibido = ntohl(hostN_value2);
     *N_value2 = N_value2_recibido;
 
     // Recibir V_value2
-    
     double V_value2_recibido[N_value2_recibido];
     for (int i = 0; i < N_value2_recibido; i++) {
         recv_status = recvMessage(sd, (char*)&V_value2_recibido[i], sizeof(double)); // Recibir cada elemento del vector
@@ -289,6 +288,7 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
         }
     }
 
+    // Recibir respuesta del servidor
     int32_t res; 
     recv_status = recvMessage(sd, (char *) &res, sizeof(int32_t));   
     if (recv_status == -1){
@@ -375,6 +375,7 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
 		return -1;
 	}
 
+    // Enviar V_value2
     for(int i = 0; i < N_value2; i++){
         send_status = sendMessage(sd, (char*) &V_value2[i], sizeof(double));
         if (send_status == -1){
@@ -382,6 +383,7 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
             return -1;
 	    }
     }
+    
     // Recibir respuesta del servidor 
     int32_t res; 
 	fflush(stdout);

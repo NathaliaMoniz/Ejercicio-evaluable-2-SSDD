@@ -18,18 +18,19 @@ int set(List *l, int key, char *value1, int N_value2, double *V_value2){
 	struct Node *ptr, *temp;
 	temp = *l;
 	
-	// El vector no tiene un tamaño permitido
+	// Comprueba que el vector tenga un tamaño permitido
 	if (N_value2 > 32 || N_value2 < 1){
 		printf("Error: el número de valores del vector solo puede estar entre 1 y 32\n");
 		pthread_mutex_unlock(&mutex_lista1);
 		return -1;
 	}
 
+	// Recorre la lista para comprobar si la clave ya existe
 	while (temp != NULL) {
         if (temp->key == key) {
             printf("Error: Key %d ya está en la lista.\n", key);
 			pthread_mutex_unlock(&mutex_lista1);
-            return -1; // La llave ya existe
+            return -1; // La clave ya existe
         }
         temp = temp->next;
     }
@@ -37,14 +38,14 @@ int set(List *l, int key, char *value1, int N_value2, double *V_value2){
 	pthread_mutex_unlock(&mutex_lista1);  // Desbloquear el primer mutex después de modificar la lista
 
 	pthread_mutex_lock(&mutex_lista2);  // Bloquear el segundo mutex antes de modificar la lista
+	// Reserva memoria para el nuevo elemento
 	ptr = (struct Node *) malloc(sizeof(struct Node));
 	if (ptr == NULL){
 		pthread_mutex_unlock(&mutex_lista2);
 
 		return -1;
 	}
-		
-
+	// Añade los valores de la clave a ptr
 	ptr->V_value2 = (double *) malloc(N_value2 * sizeof(double));
 	if (ptr->V_value2 == NULL) {
 		free(ptr);
@@ -57,6 +58,7 @@ int set(List *l, int key, char *value1, int N_value2, double *V_value2){
 	ptr->N_value2 = N_value2;
 	memcpy(ptr->V_value2, V_value2, N_value2*sizeof(double));
 
+	// Inserta ptr en la cabeza de la lista
 	if (*l == NULL) {  // Lista vacía
 		ptr->next = NULL;
 		*l = ptr;
@@ -65,10 +67,9 @@ int set(List *l, int key, char *value1, int N_value2, double *V_value2){
 	else {
 		ptr->next = *l;
 		*l = ptr;
-	}
-
-	
+	}	
 	pthread_mutex_unlock(&mutex_lista2);  // Desbloquear el segundo mutex después de modificar la lista
+
 	return 0;
 }	
 
@@ -76,8 +77,9 @@ int get(List l, int key, char *value1, int *N_value2, double *V_value2){
 	
 	pthread_mutex_lock(&mutex_lista1);
 	List aux;
-	aux = l;	
+	aux = l;
 	
+	// Recorre la lista en busca del valor
 	while (aux!=NULL) {
 		if (aux->key == key) {
 			
@@ -99,8 +101,9 @@ int get(List l, int key, char *value1, int *N_value2, double *V_value2){
 
 int printList(List l){
 	List aux;
-
 	aux = l;
+
+	// Recorre la lista imprimiendo cada valor
 	printf("esta es la lista: \n");
 	while(aux != NULL){
 		printf("Key=%d    value1=%s	value2=%d\n", aux->key, aux->value1, aux->N_value2);
@@ -117,6 +120,8 @@ int modify(List *l, int key, char *value1, int N_value2, double *V_value2){
 	pthread_mutex_lock(&mutex_lista1);
 	List aux;
 	aux = *l;
+
+	// Recorre la lista en busca del valor
 	while (aux!=NULL) {
 		if (aux->key == key) {
 			strcpy(aux->value1, value1);
@@ -141,7 +146,8 @@ int delete(List *l, int key){
 
 	pthread_mutex_lock(&mutex_lista1);  // Bloquea el mutex antes de entrar a la sección crítica
 
-	if (*l == NULL) {  // Lista vacía
+	// Lista vacía
+	if (*l == NULL) {
 		pthread_mutex_unlock(&mutex_lista1);  // Desbloquea el mutex antes de salir
 		return -1;
 	}
@@ -158,6 +164,7 @@ int delete(List *l, int key){
 	
 	aux = *l;
 	back = *l;
+	// Recorre la lista en busca del valor
 	while (aux!=NULL) {
 		if (aux->key == key) {
 			back->next = aux->next;
@@ -180,6 +187,7 @@ int inlist(List *l, int key){
 	pthread_mutex_lock(&mutex_lista1); // Bloquea el mutex antes de entrar a la zona crítica
 
     List aux = *l;
+	// Recorre la lista en busca del valor
     while (aux != NULL) {
         if (aux->key == key) {
             printf("Valor %d encontrado\n", key);
@@ -199,6 +207,7 @@ int destroy(List *l){
 	pthread_mutex_lock(&mutex_lista1); // Bloquea el mutex antes de entrar a la zona crítica
 
     List aux;
+	// Elimina cada elemento de la lista
     while (*l != NULL) {
         aux = *l;
         *l = aux->next;

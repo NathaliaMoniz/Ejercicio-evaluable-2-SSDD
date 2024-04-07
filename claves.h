@@ -95,6 +95,4 @@ int delete_key(int key);
  */
 int exist(int key);
 
-int copy_key(int key1, int key2);
-
 #endif

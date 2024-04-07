@@ -24,6 +24,7 @@ List my_list;
 int iniciado;
 
 int tratar_peticion(int * s){
+	// Declaración de las variables que se van a utilizar
 	int recv_status;
 	int32_t resultado;	
     int s_local;
@@ -32,13 +33,14 @@ int tratar_peticion(int * s){
 	char value1_recibido[256];
 	int N_value2_recibido = 0;
 
-
+	// Copia la dirección del cliente a local
     pthread_mutex_lock(&mutex_mensaje);
 	s_local = (* (int *)s);
 	busy = false;
 	pthread_cond_signal(&cond_mensaje);
 	pthread_mutex_unlock(&mutex_mensaje);
 
+	// Recibe el operador del cliente
 	recv_status = recvMessage(s_local, (char *)&op_recibido, sizeof(char));
 	if (recv_status == -1) {
 			perror("Error en recepcion\n");
@@ -48,7 +50,7 @@ int tratar_peticion(int * s){
 	printf("op_recibido: %d\n", op_recibido);
 	fflush(stdout);
 
-    // ejecutar la petición del cliente y preparar respuesta
+    // Ejecuta la operación del cliente y prepara una respuesta
 	if (op_recibido ==0){
         resultado = iniciar(&my_list);
 		iniciado = true;
@@ -56,10 +58,9 @@ int tratar_peticion(int * s){
 		sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
     }
 
-	// En caso de no ser init, se reciben el resto de los parámetros
+	// En caso de no ser init, se comprueba si el init se ha realizado previamente
 	else if (iniciado == true){
-		// printf("Tomar key\n");
-		fflush(stdout);
+		// Recibe la clave del cliente
 		recv_status = recvMessage(s_local, (char *)&key_recibido, sizeof(int));
 		if (recv_status == -1) {
 			perror("Error en recepcion\n");
@@ -67,33 +68,27 @@ int tratar_peticion(int * s){
 			exit(-1);
 		}
 		key_recibido = ntohl(key_recibido);
-		// printf("key: %d\n", key_recibido);
-		fflush(stdout);
 
+		// Comprueba si hay que realizar una operación que requiera sólo de la clave
 		if (op_recibido == 4 && iniciado == true){
+			// Eliminar el valor asociado a la clave key_recibido
 			resultado = delete(&my_list, key_recibido);
 			resultado = htonl(resultado);
 			sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 		}
-
 		else if (op_recibido == 5 && iniciado == true){
+			// Comprobar si existe el valor asociado a la clave key_recibido
 			resultado = inlist(&my_list, key_recibido);
 			resultado = htonl(resultado);
 			sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 		}
 		else if (op_recibido == 2 && iniciado == true){
-			// printf("4\n");
-			// fflush(stdout);
 			char value1_found[256];
 			int N_value2_found;
 			double V_value2_found[32];
 
 			// Obtener los valores asociados a la clave key_recibido
-			// printf("5\n");
-			// fflush(stdout);
 			int result = get(my_list, key_recibido, value1_found, &N_value2_found, V_value2_found);
-			// printf("6\n");
-			// fflush(stdout);
 			printf("res: %d\n", result);
 
 			printf("value1_found: %s\n", value1_found);
@@ -106,19 +101,18 @@ int tratar_peticion(int * s){
 			for (int i = 0; i < N_value2_found; i++) {
 				sendMessage(s_local, (char*)&V_value2_found[i], sizeof(double)); // Envía cada elemento de V_value2
 			}
-			// Envío de respuesta exitosa al cliente
+			// Envío de respuesta al cliente
 			sendMessage(s_local, (char*)&result, sizeof(int32_t)); // Envía el resultado de la operación
 		}
 		else {
-			// printf("Tomar el resto de valores\n");
+			// Recibe value1 del cliente
 			recv_status = recvMessage(s_local, value1_recibido, 256);
 			if (recv_status == -1) {
 				perror("Error en recepcion\n");
 				close(s_local);
 				exit(-1);
 			}
-			// printf("value1: %s\n", value1_recibido);
-			fflush(stdout);
+			// Recibe N_value2 del cliente
 			recv_status = recvMessage(s_local, (char *)&N_value2_recibido, sizeof(int));
 			if (recv_status == -1) {
 				perror("Error en recepcion\n");
@@ -126,11 +120,10 @@ int tratar_peticion(int * s){
 				exit(-1);
 			}
 			N_value2_recibido = ntohl(N_value2_recibido);
-			// printf("N_value2: %d\n", N_value2_recibido);
-			// fflush(stdout);
 			
 			double *V_value2_recibido = malloc(N_value2_recibido * sizeof(double)); // Alojar memoria para el vector
 
+			// Recibe V_value2 del cliente
 			for (int i = 0; i < N_value2_recibido; i++) {
 				recv_status = recvMessage(s_local, (char*)&V_value2_recibido[i], sizeof(double)); // Recibir cada elemento del vector
 				if (recv_status == -1) {
@@ -143,19 +136,23 @@ int tratar_peticion(int * s){
 			if (op_recibido == 1 && iniciado == true){
 				resultado = set(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 				resultado = htonl(resultado);
+				// Añadir un elemento a la lista
 				sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 			}
 			else if (op_recibido == 3 && iniciado == true){
 				resultado = modify(&my_list, key_recibido, value1_recibido, N_value2_recibido, V_value2_recibido);
 				resultado = htonl(resultado);
+				// Modificar un elemento de la lista
 				sendMessage(s_local, (char*)&resultado, sizeof(int32_t));
 			}
 			else {
+				// En caso de que el operador no coincida con ninguna acción posible
 				resultado = -1;
 			}
 		}
 	}
 	else {
+		// Si el init no se ha realizado y el operador no coincide con init, se llegará aquí
 		resultado = -1;
 		printf("Error: init no realizado\n");
 		resultado = htonl(resultado);
@@ -165,12 +162,14 @@ int tratar_peticion(int * s){
 	// Imprimir la lista al terminar
 	printList(my_list);
 
+	// Cerrar el socket y el hilo
 	close(s_local);
 	pthread_exit(0);
 	return 0;
 }
 
 int main(int argc, char *argv[]){  
+	// Declarar las variables para el socket y los hilos
 	int sd_server, sd_client ;
 	struct sockaddr_in server_addr,  client_addr;
 	int opt = 1;
@@ -214,6 +213,7 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 
+	// Inicializar mutex y variables condicionales
     pthread_mutex_init(&mutex_mensaje, NULL);
 	pthread_mutex_init(&mutex_lista1, NULL);
     pthread_mutex_init(&mutex_lista2, NULL);
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]){
 
     // recibir del cliente
     while(1) {
-		
+		// Esperar connect del cliente
 		sd_client = accept(sd_server, (struct sockaddr *) &client_addr, (socklen_t *)&size);
 		if (sd_client == -1) {
 			printf("Error en accept\n");
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]){
 		}
 
 		if (pthread_create(&thid, &t_attr, (void *)tratar_peticion, (void *)&sd_client)== 0) {
-			/* esperar a que el hijo copie el descriptor */ 
+			// esperar a que el hijo copie el descriptor 
 			pthread_mutex_lock(&mutex_mensaje);
 			while (busy == true)
 				pthread_cond_wait(&cond_mensaje, &mutex_mensaje);
